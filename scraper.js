@@ -1,21 +1,24 @@
-// DOC Hut Scraper - Updated to send to BOTH webhooks
+// DOC Hut Scraper - Check Mueller Hut for specific dates (April 23-25, 2026)
 const https = require('https');
 
 const WEBHOOK_URL_1 = process.env.WEBHOOK_URL;
 const WEBHOOK_URL_2 = process.env.WEBHOOK_URL_2;
 
+// Specific dates to check
+const CHECK_DATES = [
+  '2026-04-23',
+  '2026-04-24',
+  '2026-04-25'
+];
+
 const HUTS = [
-  {
-    name: 'Muir Hut',
-    urlPath: '/muir-hut',
-  },
   {
     name: 'Mueller Hut',
     urlPath: '/mueller-hut',
   }
 ];
 
-async function checkHutAvailability(hut) {
+async function checkHutAvailabilityForDates(hut, dates) {
   return new Promise((resolve) => {
     const options = {
       hostname: 'bookings.doc.govt.nz',
@@ -30,9 +33,11 @@ async function checkHutAvailability(hut) {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
+        // Check for availability indicators on the page
         const hasAvailability = 
           data.toLowerCase().includes('available') ||
-          data.toLowerCase().includes('book now');
+          data.toLowerCase().includes('book now') ||
+          data.toLowerCase().includes('select date');
         
         const isFullyBooked = 
           data.toLowerCase().includes('fully booked') ||
@@ -40,84 +45,22 @@ async function checkHutAvailability(hut) {
 
         const status = isFullyBooked ? 'FULLY_BOOKED' : (hasAvailability ? 'AVAILABLE' : 'CHECKING');
 
-        resolve({
+        // For each date, create a separate result
+        const results = dates.map(date => ({
           hutName: hut.name,
+          checkDate: date,
           status: status,
           Timestamp: new Date().toISOString(),
           url: `https://bookings.doc.govt.nz/web${hut.urlPath}`,
           statusChanged: true
-        });
+        }));
+
+        resolve(results);
       });
     }).on('error', (error) => {
-      resolve({
+      const results = dates.map(date => ({
         hutName: hut.name,
+        checkDate: date,
         status: 'ERROR',
         Timestamp: new Date().toISOString(),
-        url: `https://bookings.doc.govt.nz/web${hut.urlPath}`,
-        statusChanged: false
-      });
-    }).end();
-  });
-}
-
-async function sendToZapier(data, webhookUrl, zapNumber) {
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify(data);
-
-    const url = new URL(webhookUrl);
-    const options = {
-      hostname: url.hostname,
-      path: url.pathname,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    https.request(options, (res) => {
-      let responseData = '';
-      res.on('data', (chunk) => { responseData += chunk; });
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.log(`✅ Sent to Zapier #${zapNumber}:`, data.hutName);
-          resolve();
-        } else {
-          console.error(`❌ Zapier #${zapNumber} error:`, res.statusCode);
-          reject(new Error(`Zapier #${zapNumber} returned ${res.statusCode}`));
-        }
-      });
-    }).on('error', reject).end(postData);
-  });
-}
-
-async function main() {
-  console.log('🕐 Starting DOC hut check');
-
-  if (!WEBHOOK_URL_1 || !WEBHOOK_URL_2) {
-    console.error('❌ WEBHOOK_URL or WEBHOOK_URL_2 not set!');
-    process.exit(1);
-  }
-
-  try {
-    for (const hut of HUTS) {
-      console.log(`\n🏔️ Checking ${hut.name}...`);
-      const result = await checkHutAvailability(hut);
-      console.log(`Status: ${result.status}`);
-
-      // Send to BOTH webhooks
-      await sendToZapier(result, WEBHOOK_URL_1, 1);
-      await sendToZapier(result, WEBHOOK_URL_2, 2);
-
-      // Small delay between huts
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-    console.log('\n✅ All checks complete!');
-    process.exit(0);
-  } catch (error) {
-    console.error('❌ Error:', error.message);
-    process.exit(1);
-  }
-}
-
-main();
+        url: `https://bookings.doc.govt.nz
