@@ -19,5 +19,6 @@ jobs:
     
     - name: Run scraper
       env:
-        WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        WEBHOOK_URL: https://hooks.zapier.com/hooks/catch/27048269/ung6i0f/
+        WEBHOOK_URL_2: https://hooks.zapier.com/hooks/catch/27048269/unghe0s/
       run: node scraper.js
