@@ -1,0 +1,23 @@
+name: DOC Hut Scraper
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Run scraper
+      env:
+        WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+      run: node scraper.js
