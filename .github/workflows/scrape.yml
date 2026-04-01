@@ -21,6 +21,29 @@ on:
                                                                                                             API_KEY: ${{ secrets.DOC_API_KEY }}
                                                                                                                       WEBHOOK_URL: ${{ secrets.ZAPIER_WEBHOOK_SHEETS }}
                                                                                                                                 WEBHOOK_URL_EMAIL: ${{ secrets.ZAPIER_WEBHOOK_EMAIL }}
+                                                                                                                                        run: node scraper.jsame: DOC Hut Scraper
+on:
+  schedule:
+      - cron: '*/15 * * * *'
+        workflow_dispatch:
+        jobs:
+          scrape:
+              runs-on: ubuntu-latest
+                  steps:
+                        - uses: actions/checkout@v4
+                              - name: Set up Node.js
+                                      uses: actions/setup-node@v4
+                                              with:
+                                                        node-version: '18'
+                                                              - name: Install dependencies
+                                                                      run: npm install puppeteer
+                                                                            - name: Install Chrome for Puppeteer
+                                                                                    run: npx puppeteer install
+                                                                                          - name: Run scraper
+                                                                                                  env:
+                                                                                                            API_KEY: ${{ secrets.DOC_API_KEY }}
+                                                                                                                      WEBHOOK_URL: ${{ secrets.ZAPIER_WEBHOOK_SHEETS }}
+                                                                                                                                WEBHOOK_URL_EMAIL: ${{ secrets.ZAPIER_WEBHOOK_EMAIL }}
                                                                                                                                         run: node scraper.js
                                                                                                                                         name: DOC Hut Scraper
 on:
